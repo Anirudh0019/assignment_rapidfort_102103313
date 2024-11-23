@@ -32,7 +32,7 @@ function App() {
       formData.append('file', selectedFile);
 
       // Send file to backend for conversion
-      const response = await fetch('http://localhost:3000/convert', {
+      const response = await fetch('/convert', {
         method: 'POST',
         body: formData,
       });
