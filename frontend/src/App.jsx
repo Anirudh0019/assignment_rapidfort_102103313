@@ -32,11 +32,15 @@ function App() {
       formData.append('file', selectedFile);
 
       // Send file to backend for conversion
-      const response = await fetch('/convert', {
+      // const response = await fetch('/convert', {
+      //   method: 'POST',
+      //   body: formData,
+      // });
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || ''}/convert`, {
         method: 'POST',
         body: formData,
       });
-
+      
       if (!response.ok) {
         throw new Error('Error converting file. Please try again.');
       }
