@@ -3,12 +3,15 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: frontend/Dockerfile
+      dockerfile: ./frontend/Dockerfile
     ports:
       - "5000:5000"
+    depends_on:
+      - backend
+
   backend:
     build:
       context: .
-      dockerfile: Backend/Dockerfile
+      dockerfile: ./Backend/Dockerfile
     ports:
       - "3000:3000"

@@ -1,39 +1,26 @@
-# Use the official Node.js image as the base image
-FROM node:20 AS build
+# Use Node.js image
+FROM node:20
 
-# Set the working directory inside the container
+# Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json from the frontend directory
+# Copy only package files first (to cache `npm install`)
 COPY ./frontend/package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy the rest of the frontend files (including index.html)
+# Copy the rest of the source files
 COPY ./frontend .
 
-# Debug: List contents and package.json
-RUN ls -la
-RUN cat package.json
-
-# Build the app (for production)
+# Build the app
 RUN npm run build
-
-# Start fresh with a new stage for smaller final image
-FROM node:20-slim
-
-# Set working directory
-WORKDIR /app
 
 # Install serve globally
 RUN npm install -g serve
 
-# Copy only the built files from previous stage
-COPY --from=build /app/dist ./dist
-
 # Expose port 5000
 EXPOSE 5000
 
-# Start the server
+# Start serve
 CMD ["serve", "-s", "dist", "-l", "5000"]
