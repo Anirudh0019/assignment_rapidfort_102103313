@@ -1,26 +1,27 @@
 const express = require('express');
-const cors = require('cors'); // Import cors
+const cors = require('cors');
 const multer = require('multer');
 const { exec } = require('child_process');
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs').promises;
+const libre = require('libreoffice-convert');
+libre.convertAsync = require('util').promisify(libre.convert);
 
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3000;
 
-app.use(express.static(path.resolve(__dirname,'dist')));
-app.use(cors()); // Enable CORS
-// app.use(express.json);
-// Ensure upload and converted directories exist
+app.use(express.static(path.resolve(__dirname, 'dist')));
+app.use(cors());
+app.use(express.json());
+
 const uploadDir = path.join(__dirname, 'src', 'uploads');
 const convertedDir = path.join(__dirname, 'src', 'converted');
 
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-if (!fs.existsSync(convertedDir)) {
-  fs.mkdirSync(convertedDir, { recursive: true });
-}
+// Ensure upload and converted directories exist
+(async () => {
+  await fs.mkdir(uploadDir, { recursive: true });
+  await fs.mkdir(convertedDir, { recursive: true });
+})();
 
 const upload = multer({
   dest: uploadDir,
@@ -32,35 +33,34 @@ const upload = multer({
   },
 });
 
-app.post('/convert', upload.single('file'), (req, res) => {
+app.post('/convert', upload.single('file'), async (req, res) => {
   const docxFilePath = path.join(uploadDir, req.file.filename);
   const pdfFilePath = path.join(convertedDir, `${req.file.filename}.pdf`);
 
-  exec(`libreoffice --headless --convert-to pdf "${docxFilePath}" --outdir "${convertedDir}"`, (error) => {
-    if (error) {
-      console.error('Error during conversion:', error);
-      return res.status(500).json({ error: 'Conversion failed' });
-    }
+  try {
+    // Read .docx file buffer
+    const docxBuffer = await fs.readFile(docxFilePath);
 
-    res.download(pdfFilePath, `${path.parse(req.file.originalname).name}.pdf`, (err) => {
+    // Convert .docx to .pdf
+    const pdfBuffer = await libre.convertAsync(docxBuffer, '.pdf', undefined);
+    await fs.writeFile(pdfFilePath, pdfBuffer);
+
+    // Send converted PDF as a response
+    res.download(pdfFilePath, `${path.parse(req.file.originalname).name}.pdf`, async (err) => {
       if (err) {
         console.error('Error sending PDF:', err);
         return res.status(500).send('Error downloading the file');
       }
-
-      fs.unlink(docxFilePath, (unlinkErr) => {
-        if (unlinkErr) console.error('Error deleting DOCX file:', unlinkErr);
-      });
-      fs.unlink(pdfFilePath, (unlinkErr) => {
-        if (unlinkErr) console.error('Error deleting PDF file:', unlinkErr);
-      });
+      
+      // Clean up files
+      await fs.unlink(docxFilePath).catch(err => console.error('Error deleting DOCX file:', err));
+      await fs.unlink(pdfFilePath).catch(err => console.error('Error deleting PDF file:', err));
     });
-  });
+  } catch (error) {
+    console.error('Error during conversion:', error);
+    res.status(500).json({ error: 'Conversion failed' });
+  }
 });
-
-// app.get('*',(req,res)=>{
-//   res.sendFile(path.resolve('dist','index.html'));
-// })
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
