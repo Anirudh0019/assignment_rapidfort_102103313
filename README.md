@@ -64,6 +64,7 @@ node server.js
 
 
 ## **Final Thoughts**
+This works locally but had issues with deployment
 The project is deployed on vercel, However Internal server gateway error [500] is recieved
 {The link is along side this repo's main page}
 
