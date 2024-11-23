@@ -6,7 +6,7 @@
   500  docker-compose build
   501  docker-compose up 
   502  docker-compose down
-  
+        docker login 
   513  docker tag assignment_rapidfort_102103313-frontend:latest anirudh781/frontend-vite:latest
   514  docker push anirudh781/frontend-vite:latest
   
