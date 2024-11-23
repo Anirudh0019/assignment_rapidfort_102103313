@@ -1,0 +1,14 @@
+  
+  
+  
+  
+  
+  500  docker-compose build
+  501  docker-compose up 
+  502  docker-compose down
+  
+  513  docker tag assignment_rapidfort_102103313-frontend:latest anirudh781/frontend-vite:latest
+  514  docker push anirudh781/frontend-vite:latest
+  
+  517  docker tag assignment_rapidfort_102103313-backend:latest anirudh781/backend-server:latest
+  518  docker push anirudh781/backend-server:latest
