@@ -1,3 +1,6 @@
+
+## Note :- post latest push, the live link works only on mozilla or edge or basically anything that ist chrome
+
 ## **Table of Contents**
 
 1. [Introduction](#introduction)
