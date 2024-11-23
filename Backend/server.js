@@ -19,8 +19,12 @@ const convertedDir = path.join(__dirname, 'src', 'converted');
 
 // Ensure upload and converted directories exist
 (async () => {
-  await fs.mkdir(uploadDir, { recursive: true });
-  await fs.mkdir(convertedDir, { recursive: true });
+  try {
+    await fs.mkdir(uploadDir, { recursive: true });
+    await fs.mkdir(convertedDir, { recursive: true });
+  } catch (error) {
+    console.error('Error creating directories:', error);
+  }
 })();
 
 const upload = multer({
@@ -39,11 +43,30 @@ app.post('/convert', upload.single('file'), async (req, res) => {
 
   try {
     // Read .docx file buffer
-    const docxBuffer = await fs.readFile(docxFilePath);
+    let docxBuffer;
+    try {
+      docxBuffer = await fs.readFile(docxFilePath);
+    } catch (error) {
+      console.error('Error reading DOCX file:', error);
+      return res.status(500).json({ error: 'File read failed' });
+    }
 
     // Convert .docx to .pdf
-    const pdfBuffer = await libre.convertAsync(docxBuffer, '.pdf', undefined);
-    await fs.writeFile(pdfFilePath, pdfBuffer);
+    let pdfBuffer;
+    try {
+      pdfBuffer = await libre.convertAsync(docxBuffer, '.pdf', undefined);
+    } catch (error) {
+      console.error('Error converting DOCX to PDF:', error);
+      return res.status(500).json({ error: 'Conversion failed' });
+    }
+
+    // Write PDF to file system
+    try {
+      await fs.writeFile(pdfFilePath, pdfBuffer);
+    } catch (error) {
+      console.error('Error writing PDF file:', error);
+      return res.status(500).json({ error: 'File write failed' });
+    }
 
     // Send converted PDF as a response
     res.download(pdfFilePath, `${path.parse(req.file.originalname).name}.pdf`, async (err) => {
@@ -53,12 +76,21 @@ app.post('/convert', upload.single('file'), async (req, res) => {
       }
       
       // Clean up files
-      await fs.unlink(docxFilePath).catch(err => console.error('Error deleting DOCX file:', err));
-      await fs.unlink(pdfFilePath).catch(err => console.error('Error deleting PDF file:', err));
+      try {
+        await fs.unlink(docxFilePath);
+      } catch (error) {
+        console.error('Error deleting DOCX file:', error);
+      }
+
+      try {
+        await fs.unlink(pdfFilePath);
+      } catch (error) {
+        console.error('Error deleting PDF file:', error);
+      }
     });
   } catch (error) {
-    console.error('Error during conversion:', error);
-    res.status(500).json({ error: 'Conversion failed' });
+    console.error('Unexpected error during conversion process:', error);
+    res.status(500).json({ error: 'Unexpected error occurred' });
   }
 });
 
